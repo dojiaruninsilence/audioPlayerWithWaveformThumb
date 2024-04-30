@@ -30,17 +30,13 @@ MainComponent::MainComponent()
     thumbnail.addChangeListener(this);
 
     // Some platforms require permissions to open input channels so request that here
-    if (juce::RuntimePermissions::isRequired (juce::RuntimePermissions::recordAudio)
-        && ! juce::RuntimePermissions::isGranted (juce::RuntimePermissions::recordAudio))
-    {
-        juce::RuntimePermissions::request (juce::RuntimePermissions::recordAudio,
-                                           [&] (bool granted) { setAudioChannels (granted ? 2 : 0, 2); });
-    }
-    else
-    {
+    if (juce::RuntimePermissions::isRequired (juce::RuntimePermissions::recordAudio) && ! juce::RuntimePermissions::isGranted (juce::RuntimePermissions::recordAudio)) {
+        juce::RuntimePermissions::request (juce::RuntimePermissions::recordAudio, [&] (bool granted) { setAudioChannels (granted ? 2 : 0, 2); });
+    } else {
         // Specify the number of input and output channels that we want to open
         setAudioChannels (2, 2);
     }
+    startTimer(40);
 }
 
 MainComponent::~MainComponent() {
@@ -77,6 +73,29 @@ void MainComponent::paint (juce::Graphics& g) {
     } else {
         paintIfFileLoaded(g, thumbnailBounds);
     }
+}
+
+void MainComponent::paintIfNoFileLoaded(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds) {
+    g.setColour(juce::Colours::darkgrey);
+    g.fillRect(thumbnailBounds);
+    g.setColour(juce::Colours::white);
+    g.drawFittedText("No file loaded", thumbnailBounds, juce::Justification::centred, 1);
+}
+
+void MainComponent::paintIfFileLoaded(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds) {
+    g.setColour(juce::Colours::white);
+    g.fillRect(thumbnailBounds);
+
+    g.setColour(juce::Colours::red);
+
+    auto audioLength = (float)thumbnail.getTotalLength();
+    thumbnail.drawChannels(g, thumbnailBounds, 0.0, audioLength, 1.0f);
+
+    g.setColour(juce::Colours::green);
+
+    auto audioPosition = (float)transportSource.getCurrentPosition();
+    auto drawPosition = (audioPosition / audioLength) * (float)thumbnailBounds.getWidth() + (float)thumbnailBounds.getX();
+    g.drawLine(drawPosition, (float)thumbnailBounds.getY(), drawPosition, (float)thumbnailBounds.getBottom(), 2.0f);
 }
 
 void MainComponent::resized() {
@@ -133,22 +152,6 @@ void MainComponent::thumbnailChanged() {
     repaint();
 }
 
-void MainComponent::paintIfNoFileLoaded(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds) {
-    g.setColour(juce::Colours::darkgrey);
-    g.fillRect(thumbnailBounds);
-    g.setColour(juce::Colours::white);
-    g.drawFittedText("No file loaded", thumbnailBounds, juce::Justification::centred, 1);
-}
-
-void MainComponent::paintIfFileLoaded(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds) {
-    g.setColour(juce::Colours::white);
-    g.fillRect(thumbnailBounds);
-
-    g.setColour(juce::Colours::red);
-
-    thumbnail.drawChannels(g, thumbnailBounds, 0.0, thumbnail.getTotalLength(), 1.0f);
-}
-
 void MainComponent::openButtonClicked() {
     chooser = std::make_unique<juce::FileChooser>("Select a Wave file to play...", juce::File{}, "*.wav");
     auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
@@ -176,4 +179,8 @@ void MainComponent::playButtonClicked() {
 
 void MainComponent::stopButtonClicked() {
     changeState(STOPPING);
+}
+
+void MainComponent::timerCallback() {
+    repaint();
 }

@@ -8,7 +8,8 @@
     your controls and content.
 */
 class MainComponent  : public juce::AudioAppComponent,
-                       private juce::ChangeListener
+                       public juce::ChangeListener,
+                       private juce::Timer
 {
 public:
     //==============================================================================
@@ -22,6 +23,8 @@ public:
 
     //==============================================================================
     void paint (juce::Graphics& g) override;
+    void paintIfNoFileLoaded(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds);
+    void paintIfFileLoaded(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds);
     void resized() override;
     void changeListenerCallback(juce::ChangeBroadcaster* source);
 
@@ -36,11 +39,10 @@ private:
     void changeState(TransportState newState);
     void transportSourceChanged();
     void thumbnailChanged();
-    void paintIfNoFileLoaded(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds);
-    void paintIfFileLoaded(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds);
     void openButtonClicked();
     void playButtonClicked();
     void stopButtonClicked();
+    void timerCallback();
     //==============================================================================
     juce::TextButton openButton;
     juce::TextButton playButton;
