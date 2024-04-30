@@ -4,7 +4,8 @@
 MainComponent::MainComponent()
     : state(STOPPED),
     thumbnailCache(5),
-    thumbnail(512, formatManager, thumbnailCache) {
+    thumbnailComp(512, formatManager, thumbnailCache),
+    positionOverlay (transportSource) {
     addAndMakeVisible(&openButton);
     openButton.setButtonText("Open...");
     openButton.onClick = [this] {openButtonClicked();};
@@ -21,13 +22,15 @@ MainComponent::MainComponent()
     stopButton.setColour(juce::TextButton::buttonColourId, juce::Colours::red);
     stopButton.setEnabled(false);
 
+    addAndMakeVisible(&thumbnailComp);
+    addAndMakeVisible(&positionOverlay);
+
     // Make sure you set the size of the component after
     // you add any child components.
     setSize (600, 400);
 
     formatManager.registerBasicFormats();
     transportSource.addChangeListener(this);
-    thumbnail.addChangeListener(this);
 
     // Some platforms require permissions to open input channels so request that here
     if (juce::RuntimePermissions::isRequired (juce::RuntimePermissions::recordAudio) && ! juce::RuntimePermissions::isGranted (juce::RuntimePermissions::recordAudio)) {
@@ -36,7 +39,6 @@ MainComponent::MainComponent()
         // Specify the number of input and output channels that we want to open
         setAudioChannels (2, 2);
     }
-    startTimer(40);
 }
 
 MainComponent::~MainComponent() {
@@ -52,9 +54,10 @@ void MainComponent::prepareToPlay (int samplesPerBlockExpected, double sampleRat
 void MainComponent::getNextAudioBlock (const juce::AudioSourceChannelInfo& bufferToFill) {
     if (readerSource.get() == nullptr) {
         bufferToFill.clearActiveBufferRegion();
-    } else {
-        transportSource.getNextAudioBlock(bufferToFill);
+        return;
     }
+
+    transportSource.getNextAudioBlock(bufferToFill);    
 }
 
 void MainComponent::releaseResources() {
@@ -62,54 +65,20 @@ void MainComponent::releaseResources() {
 }
 
 //==============================================================================
-void MainComponent::paint (juce::Graphics& g) {
-    // black fill
-    g.fillAll(juce::Colours::black);
-
-    juce::Rectangle<int> thumbnailBounds(10, 100, getWidth() - 20, getHeight() - 120);
-
-    if (thumbnail.getNumChannels() == 0) {
-        paintIfNoFileLoaded(g, thumbnailBounds);
-    } else {
-        paintIfFileLoaded(g, thumbnailBounds);
-    }
-}
-
-void MainComponent::paintIfNoFileLoaded(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds) {
-    g.setColour(juce::Colours::darkgrey);
-    g.fillRect(thumbnailBounds);
-    g.setColour(juce::Colours::white);
-    g.drawFittedText("No file loaded", thumbnailBounds, juce::Justification::centred, 1);
-}
-
-void MainComponent::paintIfFileLoaded(juce::Graphics& g, const juce::Rectangle<int>& thumbnailBounds) {
-    g.setColour(juce::Colours::white);
-    g.fillRect(thumbnailBounds);
-
-    g.setColour(juce::Colours::red);
-
-    auto audioLength = (float)thumbnail.getTotalLength();
-    thumbnail.drawChannels(g, thumbnailBounds, 0.0, audioLength, 1.0f);
-
-    g.setColour(juce::Colours::green);
-
-    auto audioPosition = (float)transportSource.getCurrentPosition();
-    auto drawPosition = (audioPosition / audioLength) * (float)thumbnailBounds.getWidth() + (float)thumbnailBounds.getX();
-    g.drawLine(drawPosition, (float)thumbnailBounds.getY(), drawPosition, (float)thumbnailBounds.getBottom(), 2.0f);
-}
 
 void MainComponent::resized() {
     openButton.setBounds(10, 10, getWidth() - 20, 20);
     playButton.setBounds(10, 40, getWidth() - 20, 20);
     stopButton.setBounds(10, 70, getWidth() - 20, 20);
+
+    juce::Rectangle<int> thumbnailBounds(10, 100, getWidth() - 20, getHeight() - 120);
+    thumbnailComp.setBounds(thumbnailBounds);
+    positionOverlay.setBounds(thumbnailBounds);
 }
 
 void MainComponent::changeListenerCallback(juce::ChangeBroadcaster* source) {
     if (source == &transportSource) { 
         transportSourceChanged();
-    }
-    if (source == &thumbnail) {
-        thumbnailChanged();
     }
 }
 
@@ -148,10 +117,6 @@ void MainComponent::transportSourceChanged() {
     changeState(transportSource.isPlaying() ? PLAYING : STOPPED);
 }
 
-void MainComponent::thumbnailChanged() {
-    repaint();
-}
-
 void MainComponent::openButtonClicked() {
     chooser = std::make_unique<juce::FileChooser>("Select a Wave file to play...", juce::File{}, "*.wav");
     auto chooserFlags = juce::FileBrowserComponent::openMode | juce::FileBrowserComponent::canSelectFiles;
@@ -166,7 +131,7 @@ void MainComponent::openButtonClicked() {
                 auto newSource = std::make_unique<juce::AudioFormatReaderSource>(reader, true);
                 transportSource.setSource(newSource.get(), 0, nullptr, reader->sampleRate);
                 playButton.setEnabled(true);
-                thumbnail.setSource(new juce::FileInputSource(file));
+                thumbnailComp.setFile(file);
                 readerSource.reset(newSource.release());
             }
         }
@@ -179,8 +144,4 @@ void MainComponent::playButtonClicked() {
 
 void MainComponent::stopButtonClicked() {
     changeState(STOPPING);
-}
-
-void MainComponent::timerCallback() {
-    repaint();
 }

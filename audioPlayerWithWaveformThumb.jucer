@@ -5,6 +5,14 @@
               jucerFormatVersion="1">
   <MAINGROUP id="JyC19D" name="audioPlayerWithWaveformThumb">
     <GROUP id="{525EEDB0-3089-4EEF-F813-64B7FE595AE9}" name="Source">
+      <FILE id="zYwSg2" name="ThumbnailComponent.cpp" compile="1" resource="0"
+            file="Source/ThumbnailComponent.cpp"/>
+      <FILE id="mF2DEG" name="ThumbnailComponent.h" compile="0" resource="0"
+            file="Source/ThumbnailComponent.h"/>
+      <FILE id="yhr4CS" name="PositionOverlay.cpp" compile="1" resource="0"
+            file="Source/PositionOverlay.cpp"/>
+      <FILE id="OIbUpC" name="PositionOverlay.h" compile="0" resource="0"
+            file="Source/PositionOverlay.h"/>
       <FILE id="rUOwOU" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="ucAiyL" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
       <FILE id="QJ2aKB" name="MainComponent.cpp" compile="1" resource="0"
