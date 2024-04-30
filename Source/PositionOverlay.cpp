@@ -12,7 +12,7 @@
 #include "PositionOverlay.h"
 
 //==============================================================================
-PositionOverlay::PositionOverlay(const juce::AudioTransportSource& transportSourceToUse)
+PositionOverlay::PositionOverlay(juce::AudioTransportSource& transportSourceToUse)
     : transportSource(transportSourceToUse)
 {
     startTimer(40);
@@ -33,6 +33,17 @@ void PositionOverlay::paint (juce::Graphics& g)
 
         g.setColour(juce::Colours::darkgreen);
         g.drawLine(drawPosition, 0.0f, drawPosition, (float)getHeight(), 2.0f);
+    }
+}
+
+void PositionOverlay::mouseDown(const juce::MouseEvent& event) {
+    auto duration = transportSource.getLengthInSeconds();
+
+    if (duration > 0.0) {
+        auto clickPosition = event.position.x;
+        auto audioPosition = (clickPosition / (float)getWidth()) * duration;
+
+        transportSource.setPosition(audioPosition);
     }
 }
 

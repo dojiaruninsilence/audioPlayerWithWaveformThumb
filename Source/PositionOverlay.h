@@ -19,15 +19,17 @@ class PositionOverlay  : public juce::Component,
     private juce::Timer
 {
 public:
-    PositionOverlay(const juce::AudioTransportSource& transportSourceToUse);
+    PositionOverlay(juce::AudioTransportSource& transportSourceToUse);
     ~PositionOverlay() override;
 
     void paint (juce::Graphics&) override;
 
+    void mouseDown(const juce::MouseEvent& event) override;
+
 private:
     void timerCallback() override;
     
-    const juce::AudioTransportSource& transportSource;
+    juce::AudioTransportSource& transportSource;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PositionOverlay)
 };
